@@ -1,7 +1,7 @@
 import os
 import subprocess
 import sys
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 
 
@@ -54,23 +54,6 @@ class CMakeBuild(build_ext):
 
 
 setup(
-    name="pygemma",
-    version="0.1.2",
-    author="Nam Tran",
-    author_email="namtran.ase@gmail.com",
-    description="A Python package with a C++ backend using gemma.",
-    long_description="""
-    This package provides Python bindings to a C++ library using pybind11.
-    """,
-    long_description_content_type="text/markdown",
     ext_modules=[CMakeExtension("pygemma")],
     cmdclass=dict(build_ext=CMakeBuild),
-    zip_safe=False,
-    packages=find_packages(),
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ],
-    python_requires=">=3.8",
 )
