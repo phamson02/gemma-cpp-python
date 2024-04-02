@@ -13,33 +13,12 @@ gcpp::Path createPath(const char *pathString) {
     return path;
 }
 
-gcpp::Gemma *loadGemmaModel(const char *tokenizer_path_str, const char *compressed_weights_path_str,
-                            const char *model_type_str) {
-    gcpp::Path tokenizer_path = createPath(tokenizer_path_str);
-    gcpp::Path compressed_weights_path = createPath(compressed_weights_path_str);
-
-    gcpp::Model model_type;
-    if (std::string(model_type_str) == "2b-pt" || std::string(model_type_str) == "2b-it") {
-        model_type = gcpp::Model::GEMMA_2B;
-    }
-    else {
-        model_type = gcpp::Model::GEMMA_7B;
-    }
-
-    // Rough heuristic for the number of threads to use
-    size_t num_threads = static_cast<size_t>(std::clamp(
-                             static_cast<int>(std::thread::hardware_concurrency()) - 2, 1, 18));
-    hwy::ThreadPool pool(num_threads);
-
-    gcpp::Gemma *model = new gcpp::Gemma(tokenizer_path, compressed_weights_path, model_type, pool);
-    return model;
-}
-
 class _GemmaModel {
     private:
         gcpp::Gemma *model;
         gcpp::Model model_type;
 
+        const int eos_token = 1;
         const int bos_token = 2;
 
     public:
@@ -65,7 +44,11 @@ class _GemmaModel {
             return bos_token;
         }
 
-        std::vector<int> tokenize(const std::string &text, bool add_bos = false) {
+        int get_eos_token() const {
+            return eos_token;
+        }
+
+        std::vector<int> tokenize(const std::string &text, bool add_bos = true) {
             std::vector<int> tokens;
 
             if (model->Tokenizer()->Encode(text, &tokens).ok()) {
@@ -105,13 +88,13 @@ class _GemmaModel {
             std::string completion;
 
             // This callback function gets invoked everytime a token is generated
-            auto stream_token = [&pos, &gen, &ntokens, tokenizer = model->Tokenizer(), &completion] (
+            auto stream_token = [this, &pos, &gen, &ntokens, tokenizer = model->Tokenizer(), &completion] (
                                     int token, float) {
                 ++pos;
                 if (pos < ntokens) {
                     // print feedback
                 }
-                else if (token != gcpp::EOS_ID) {
+                else if (token != this->eos_token) {
                     std::string token_text;
                     HWY_ASSERT(tokenizer->Decode(std::vector<int>{token}, &token_text).ok());
 
@@ -124,7 +107,7 @@ class _GemmaModel {
             gcpp::GenerateGemma(*model,
                           {.max_tokens = 2048,
                            .max_generated_tokens = 1024,
-                           .temperature = 1.0,
+                           .temperature = 0.0,
                            .verbosity = 0},
                           tokens, /*KV cache position = */ 0, kv_cache, pool,
                           stream_token, gen);
