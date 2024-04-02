@@ -23,15 +23,18 @@ FetchContent_MakeAvailable(gemma)
 FetchContent_Declare(highway GIT_REPOSITORY https://github.com/google/highway.git GIT_TAG da250571a45826b21eebbddc1e50d0c1137dee5f)
 FetchContent_MakeAvailable(highway)
 
-# Create the Python module
-add_library(pygemma SHARED src/gemma_binding.cpp)
+FetchContent_Declare(pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git GIT_TAG v2.10.4)
+FetchContent_MakeAvailable(pybind11)
 
-target_link_libraries(pygemma PRIVATE libgemma hwy hwy_contrib sentencepiece)
+# Create the Python module
+pybind11_add_module(_pygemma src/gemma_binding.cpp)
+
+target_link_libraries(_pygemma PRIVATE libgemma hwy hwy_contrib sentencepiece)
 
 # Link against libgemma.a and any other necessary libraries
 FetchContent_GetProperties(gemma)
 FetchContent_GetProperties(sentencepiece)
-target_include_directories(pygemma PRIVATE ${gemma_SOURCE_DIR})
-target_include_directories(pygemma PRIVATE ${sentencepiece_SOURCE_DIR})
-
-set_target_properties(pygemma PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/pygemma)
+target_include_directories(_pygemma PRIVATE ${gemma_SOURCE_DIR})
+target_include_directories(_pygemma PRIVATE ${sentencepiece_SOURCE_DIR})
+target_compile_definitions(libgemma PRIVATE $<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS NOMINMAX>)
+target_compile_options(libgemma PRIVATE $<$<PLATFORM_ID:Windows>:-Wno-deprecated-declarations>)
