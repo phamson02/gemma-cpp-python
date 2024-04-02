@@ -32,17 +32,23 @@ class Gemma:
                 f"Compressed weights not found: {self.compressed_weights_path}"
             )
 
-        self.model = _pygemma._GemmaModel(  # type: ignore
+        self.model = _pygemma.GemmaModel(
             self.tokenizer_path,
             self.compressed_weights_path,
             self.model_type.value,
         )
 
-        assert self.model  # type: ignore
+        assert self.model
 
     @property
     def bos_token(self) -> int:
-        return self.model.bos_token  # type: ignore
+        assert self.model
+        return self.model.bos_token
+
+    @property
+    def eos_token(self) -> int:
+        assert self.model
+        return self.model.eos_token
 
     def __call__(
         self,
@@ -50,17 +56,20 @@ class Gemma:
         max_tokens: Optional[int] = 1024,
         temperature: float = 1.0,
     ) -> str:
-        return self.model.complete(prompt)  # type: ignore
+        assert self.model
+        return self.model.complete(prompt)
 
     def tokenize(
         self,
         text: str,
         add_bos: bool = True,
     ) -> List[int]:
-        return self.model.tokenize(text, add_bos)  # type: ignore
+        assert self.model
+        return self.model.tokenize(text, add_bos)
 
     def detokenize(
         self,
         tokens: List[int],
     ) -> str:
-        return self.model.detokenize(tokens)  # type: ignore
+        assert self.model
+        return self.model.detokenize(tokens)
