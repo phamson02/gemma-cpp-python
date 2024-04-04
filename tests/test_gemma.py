@@ -1,8 +1,9 @@
-from pygemma import Gemma, ModelType
+from pygemma import Gemma, ModelType, ModelTraining
 
 TOKENIZER_PATH = "../model/tokenizer.spm"
-COMPRESSED_WEIGHTS_PATH = "../model/2b-it-sfp.sbs"
+COMPRESSED_WEIGHTS_PATH = "../model/2b-it-mqa.sbs"
 MODEL_TYPE = ModelType.Gemma2B
+MODEL_TRAINING = ModelTraining.GEMMA_IT
 
 
 def test_gemma():
@@ -10,6 +11,7 @@ def test_gemma():
         tokenizer_path=TOKENIZER_PATH,
         compressed_weights_path=COMPRESSED_WEIGHTS_PATH,
         model_type=MODEL_TYPE,
+        model_training=MODEL_TRAINING,
     )
 
     assert gemma

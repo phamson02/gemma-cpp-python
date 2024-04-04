@@ -6,6 +6,8 @@ class GemmaModel:
         tokenizer_path: str,
         compressed_weights_path: str,
         model_type: int,
+        model_training: int,
+        n_threads: int,
     ) -> None:
         pass
 
@@ -13,9 +15,14 @@ class GemmaModel:
     def bos_token(self) -> int: ...
     @property
     def eos_token(self) -> int: ...
-    def complete(
+    def generate(
         self,
         prompt: str,
+        max_tokens: int,
+        max_generated_tokens: int,
+        temperature: float,
+        seed: int,
+        verbosity: int,
     ) -> str: ...
     def tokenize(
         self,

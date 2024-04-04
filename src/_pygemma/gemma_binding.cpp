@@ -16,17 +16,19 @@ gcpp::Path createPath(const char *pathString) {
 }
 
 GemmaModel::GemmaModel(const char *tokenizer_path_str, const char *compressed_weights_path_str,
-                       int model_type_id) {
+                       int model_type_id, int training_id, int num_threads) {
     gcpp::Path tokenizer_path = createPath(tokenizer_path_str);
     gcpp::Path compressed_weights_path = createPath(compressed_weights_path_str);
-    model_type = static_cast<gcpp::Model>(model_type_id);
+    gcpp::Path weights_path = gcpp::Path{""};
 
-    // Rough heuristic for the number of threads to use
-    size_t num_threads = static_cast<size_t>(std::clamp(
-                             static_cast<int>(std::thread::hardware_concurrency()) - 2, 1, 18));
+    GemmaModel::model_type = static_cast<gcpp::Model>(model_type_id);
+    GemmaModel::model_training = static_cast<gcpp::ModelTraining>(training_id);
+    GemmaModel::num_threads = static_cast<size_t>(num_threads);
+
     hwy::ThreadPool pool(num_threads);
 
-    model = new gcpp::Gemma(tokenizer_path, compressed_weights_path, model_type, pool);
+    model = new gcpp::Gemma(tokenizer_path, compressed_weights_path, weights_path, model_type,
+                            model_training, pool);
 }
 
 GemmaModel::~GemmaModel() {
@@ -61,10 +63,9 @@ std::string GemmaModel::detokenize(const std::vector<int> &tokens) {
     return "";
 }
 
-std::string GemmaModel::complete(const std::string &text) {
-    // Rough heuristic for the number of threads to use
-    size_t num_threads = static_cast<size_t>(std::clamp(
-                             static_cast<int>(std::thread::hardware_concurrency()) - 2, 1, 18));
+std::string GemmaModel::generate(const std::string &prompt_string, size_t max_tokens,
+                                 size_t max_generated_tokens, float temperature, uint_fast32_t seed, int verbosity) {
+
     hwy::ThreadPool pool(num_threads);
 
     auto kv_cache = CreateKVCache(model_type);
@@ -72,10 +73,18 @@ std::string GemmaModel::complete(const std::string &text) {
 
     // Initialize random number generator
     std::mt19937 gen;
-    std::random_device rd;
-    gen.seed(rd());
+    gen.seed(seed);
 
-    std::vector<int> tokens = tokenize(text);
+    std::string formatted;
+    if (model_training == gcpp::ModelTraining::GEMMA_IT) {
+        formatted = "<start_of_turn>user\n" + prompt_string +
+                    "<end_of_turn>\n<start_of_turn>model\n";
+    }
+    else {
+        formatted = prompt_string;
+    }
+
+    std::vector<int> tokens = tokenize(formatted);
     size_t ntokens = tokens.size();
 
     std::string completion;
@@ -98,10 +107,10 @@ std::string GemmaModel::complete(const std::string &text) {
     };
 
     gcpp::GenerateGemma(*model, {
-        .max_tokens = 2048,
-        .max_generated_tokens = 1024,
-        .temperature = 0.0,
-        .verbosity = 0
+        .max_tokens = max_tokens,
+        .max_generated_tokens = max_generated_tokens,
+        .temperature = temperature,
+        .verbosity = verbosity
     },
     tokens, /*KV cache position = */ 0, kv_cache, pool,
     stream_token, gen);
@@ -114,14 +123,17 @@ PYBIND11_MODULE(_pygemma, m) {
 
     py::class_<GemmaModel>(m, "GemmaModel")
     .def_property_readonly("bos_token", &GemmaModel::get_bos_token, "Get the BOS token")
-    .def(py::init<const char *, const char *, int>(), py::arg("tokenizer_path"),
-         py::arg("compressed_weights_path"), py::arg("model_type"), "Create an instance of Gemma model")
+    .def(py::init<const char *, const char *, int, int, int>(), py::arg("tokenizer_path"),
+         py::arg("compressed_weights_path"), py::arg("model_type"), py::arg("model_training"),
+         py::arg("num_threads"),
+         "Initialize the Gemma model")
     .def("tokenize", &GemmaModel::tokenize, py::arg("text"), py::arg("add_bos") = false,
          "Tokenize the input text and return the tokenized text")
     .def("detokenize", &GemmaModel::detokenize, py::arg("tokens"),
          "Detokenize the input tokens and return the detokenized text")
 
     // Quick experiment
-    .def("complete", &GemmaModel::complete, py::arg("text"),
-         "Complete the input text and return the completion text");
+    .def("generate", &GemmaModel::generate, py::arg("prompt"), py::arg("max_tokens"),
+         py::arg("max_generated_tokens"), py::arg("temperature"), py::arg("seed"), py::arg("verbosity"),
+         "Generate text based on the input prompt");
 }
