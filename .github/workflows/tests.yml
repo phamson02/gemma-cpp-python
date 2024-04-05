@@ -27,7 +27,7 @@ jobs:
           key: model-gemma-gemmaCpp-2b-it-mqa-v1
       
       - name: Download model from Kaggle
-        if: steps.cache-model.outputs.cache-hit != 'true'
+        if: ${{ steps.cache-model.outputs.cache-hit != 'true' }}
         run: |
           mkdir -p model
           curl -L -u ${{ secrets.KAGGLE_USERNAME }}:${{ secrets.KAGGLE_KEY }} \
