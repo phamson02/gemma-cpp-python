@@ -161,3 +161,9 @@ cython_debug/
 
 # Vscode
 .vscode/
+
+# Precommit
+.pre-commit-config.yaml
+
+# Models
+models/
