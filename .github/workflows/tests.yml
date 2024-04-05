@@ -32,7 +32,7 @@ jobs:
           mkdir -p model
           curl -L -u ${{ secrets.KAGGLE_USERNAME }}:${{ secrets.KAGGLE_KEY }} \
             -o model/model.tar.gz \
-            https://www.kaggle.com/api/v1/models/google/gemma/gemmaCpp/2b-it-mqa/1/download
+            "https://www.kaggle.com/api/v1/models/google/gemma/gemmaCpp/2b-it-mqa/1/download"
           tar -xzf model/model.tar.gz -C model
           rm model/model.tar.gz
         shell: bash
