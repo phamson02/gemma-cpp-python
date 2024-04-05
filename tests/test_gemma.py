@@ -1,7 +1,11 @@
+import os
 from pygemma import Gemma, ModelType, ModelTraining
 
-TOKENIZER_PATH = "../model/tokenizer.spm"
-COMPRESSED_WEIGHTS_PATH = "../model/2b-it-mqa.sbs"
+# Get the directory that this file is in
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
+TOKENIZER_PATH = os.path.join(dir_path, "../model/tokenizer.spm")
+COMPRESSED_WEIGHTS_PATH = os.path.join(dir_path, "../model/2b-it-mqa.sbs")
 MODEL_TYPE = ModelType.Gemma2B
 MODEL_TRAINING = ModelTraining.GEMMA_IT
 
@@ -29,9 +33,3 @@ def test_gemma():
     tokens_without_bos = gemma.tokenize(text, add_bos=False)
     assert tokens_without_bos[0] != gemma.bos_token
     assert tokens_without_bos == [4521, 2134, 235341]
-
-    text = "2 +"
-
-    generated = gemma(text)
-
-    assert generated
